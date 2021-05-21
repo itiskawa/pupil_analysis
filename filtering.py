@@ -1,4 +1,5 @@
 import os
+from numpy.lib.npyio import save
 import pandas as pd
 import numpy as np
 from numpy import fft as fft
@@ -131,14 +132,19 @@ def plot_graph():
     a = np.ones(100)
     plt.plot(a, '--', label='baseline', color='gray')
 
-def make_graphs(save_path, patient_name, pre, post, trigger, hcut, constr_time, show_original):
+def make_graphs(save_path, patient_name, pre, post, trigger, hcut, constr_time, show_original,
+                area_06, area_630, latency, velocity):
+
+    # setting default arguments
     if hcut == 0:
         hcut = 40
     if constr_time == 0:
         constr_time = 400
 
+    #make sure it's legit
     assert(len(pre) == len(trigger))
     assert(len(post) ==len(pre))
+
 
     all_data =""
 
@@ -173,14 +179,14 @@ def make_graphs(save_path, patient_name, pre, post, trigger, hcut, constr_time, 
             plt.plot(connect(pre_, np.copy(p)), label='filtered', color='blue') #original graph
 
         #plt.plot(connect(pre_, post_), label='filtered', color='g')
-        plt.plot(connect(pre_, ft), label='processed', color='r')
+        plt.plot(connect(pre_, ft), label='processed', color='r') # processed graph
         
         
         
         plt.plot(trigger[i], connect(pre_, ft)[trigger[i]], 'x',mew=2, ms=5, label='trigger', color='black')
         
         
-        mindex, min_value = min_and_value(ft[:400])
+        mindex, min_value = min_and_value(ft[:constr_time])
         plt.plot(mindex, min_value, '+', label= 'min value', color='black', mew=5,ms=10)
         plt.title(label=patient_name)
         
@@ -202,7 +208,15 @@ def make_graphs(save_path, patient_name, pre, post, trigger, hcut, constr_time, 
     """ with open(save_path+"/data.txt", "w") as f:
             f.write(all_data)
             f.close() """
+    
+    abs_min = np.min(ft[:400])
+    max_constr_ampl = baseline - abs_min
+
     write_data(save_path, 'Time from Trigger to Maximal Contraction', all_data)
+    if latency == 1:
+        write_data(save_path, 'Latency', np.min(ft[:400]))
+    if velocity == 1:
+        write_data(save_path, 'Velocity', max_constr_ampl/abs_min)
 
 def write_data(path, title, data):
     with open(path+"/data.txt", "w") as f:

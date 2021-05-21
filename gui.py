@@ -31,7 +31,8 @@ def compute_graphs():
         if constr_time != 0:
             make_graphs(makepath(), path_name, pre, post, trigger, constr_time.get()*120)
         else: """
-    make_graphs(makepath(), path_name, pre, post, trigger, highcut.get(), constr_time.get()*120, show_original.get())
+    make_graphs(makepath(), path_name, pre, post, trigger, highcut.get(), constr_time.get()*120, show_original.get(),
+                area_06.get(), area_630.get(), latency.get(), velocity.get())
     print("graphs done, check the file")
 
 def y():
