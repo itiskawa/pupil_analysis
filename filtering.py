@@ -1,5 +1,4 @@
 import os
-from numpy.lib.npyio import save
 import pandas as pd
 import numpy as np
 from numpy import fft as fft
@@ -197,30 +196,47 @@ def make_graphs(save_path, patient_name, pre, post, trigger, hcut, constr_time, 
         time_to_min = (1/120)*(mindex-trigger[i])
         
         #print("Time to min from trigger: ~{:.2f} sec - aka frame number {}".format(time_to_min, frames_to_min))
-        all_data +="Trigger number [{}] : Time to min from trigger: ~{:.2f} sec \n".format(i+1, time_to_min)
+        
         
         save_path_graphs = save_path+'/results/processed_'+str(i)
+
         if not os.path.exists(save_path+'/results'):
             os.mkdir(save_path+'/results')
         plt.savefig(fname=save_path_graphs)
-        
+
+        abs_min = np.min(ft[:400])
+        max_constr_ampl = baseline[0] - abs_min
+
+
+        # DATA PRINTING
+        all_data +="TRIGGER NUMBER [{}] : \n".format(i+1) 
+        all_data += "   - Time to min from trigger: ~{:.2f} sec \n".format(i+1, time_to_min)
+
+
+        all_data += '   - Maximal Constriction Amplitude [%] : {:.4f} \n'.format(max_constr_ampl)
+        if latency == 1:
+                all_data += '   - Latency : '
+                all_data += '{:.4f} \n'.format(abs_min)
+                #write_data(save_path, 'Latency', str(abs_min))
+        if velocity == 1:
+            all_data += '   - Velocity : '
+            all_data += '{:.4f} \n'.format(max_constr_ampl/abs_min)
+        all_data += '\n'
     #write data 
     """ with open(save_path+"/data.txt", "w") as f:
             f.write(all_data)
             f.close() """
     
-    abs_min = np.min(ft[:400])
-    max_constr_ampl = baseline - abs_min
+    
+    
+   # write_data(save_path, 'Maximal Constriction Amplitude %', str(max_constr_ampl))
+    #write_data(save_path, 'Time from Trigger to Maximal Contraction', all_data)
+    
+        #write_data(save_path, 'Velocity', str(max_constr_ampl/abs_min))
+    write_data(save_path, all_data)
 
-    write_data(save_path, 'Time from Trigger to Maximal Contraction', all_data)
-    if latency == 1:
-        write_data(save_path, 'Latency', np.min(ft[:400]))
-    if velocity == 1:
-        write_data(save_path, 'Velocity', max_constr_ampl/abs_min)
-
-def write_data(path, title, data):
+def write_data(path,data):
     with open(path+"/data.txt", "w") as f:
-            f.write(title + '\n')
             f.write('\n')
             f.write(data)
             f.close()

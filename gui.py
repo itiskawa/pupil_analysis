@@ -4,17 +4,18 @@ from matplotlib.pyplot import show
 
 from numpy.core.numeric import ones
 from filtering import *
+from tkinter import messagebox
 
 app = Tk()
 
 def makepath():
-    print(getpath() + '/{}/{}'.format(path_name.get(), folder_name.get()))
+    #print(getpath() + '/{}/{}'.format(path_name.get(), folder_name.get()))
     return getpath() + '/{}/{}'.format(path_name.get(), folder_name.get())
 
 def patient_sheets():
     # return pre, post, triggers of the given patient
     pre, post, trigger = splitprepost(getPatientSheetsConcat(makepath()))
-    print('fetched excel files')
+    #print('fetched excel files')
     return pre, post, trigger
 
 # computes all graphs for given patient
@@ -33,7 +34,7 @@ def compute_graphs():
         else: """
     make_graphs(makepath(), path_name, pre, post, trigger, highcut.get(), constr_time.get()*120, show_original.get(),
                 area_06.get(), area_630.get(), latency.get(), velocity.get())
-    print("graphs done, check the file")
+    messagebox.showinfo(message='Graphs are done!')
 
 def y():
     print(highcut.get())
@@ -62,8 +63,7 @@ folder_name_label.grid(row = 1, column=0)
 folder_entry = Entry(app, textvariable=folder_name)
 folder_entry.grid(row=1, column=1)
 
-""" fetch_btn = Button(app, text='fetch data', width=12, command=patient_sheets)
-fetch_btn.grid(row=2, column=1) """
+
 opt_text = Label(app, text='Optional Settings', padx=20)
 opt_text.grid(row=2, column=0)
 
@@ -111,9 +111,11 @@ latency_label = Checkbutton(text='Latency', variable=latency, onvalue=1, offvalu
 latency_label.grid(row=3, column=2)
 
 velocity = IntVar()
-velocity_label = Checkbutton(text='Velocity', variable=area_06, onvalue=1, offvalue=0)
+velocity_label = Checkbutton(text='Velocity', variable=velocity, onvalue=1, offvalue=0)
 velocity_label.grid(row=4, column=2)
 
 
 #runs app
 app.mainloop()
+
+#pyinstaller --onefile --add-binary='/System/Library/Frameworks/Tk.framework/Tk':'tk' --add-binary='/System/Library/Frameworks/Tcl.framework/Tcl':'tcl' gui.py
