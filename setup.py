@@ -1,6 +1,6 @@
 from setuptools import setup
 
-APP = ['gui.py']
+APP = ['gui copy.py']
 OPTIONS = {
     'arg_emulation': True,
     'packages': ['certifi',]
