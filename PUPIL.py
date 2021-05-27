@@ -4,21 +4,26 @@ import os
 from tkinter import messagebox
 from tkinter.filedialog import askdirectory, askopenfilename
 
+from numpy.lib.shape_base import _put_along_axis_dispatcher
+
 app = Tk()
 path = StringVar()
 
-def patient_sheets(path):
+def patient_sheets(path, split):
     # return pre, post, triggers of the given patient
-    pre, post, trigger = splitprepost(getPatientSheetsConcat(path))
+    
+    pre, post, trigger = splitprepost(getPatientSheetsConcat(path), split)
     #print('fetched excel files')
     return pre, post, trigger
 
 # computes all graphs for given patient
 def compute_graphs():
+   
+    pre, post, trigger = patient_sheets(path.get(),split.get())
     
-    pre, post, trigger = patient_sheets(path.get())
+    
     make_graphs(path.get(), "", pre, post, trigger, hcut.get(), constr_time.get()*120, show_original.get(),
-                area_06.get(), area_630.get(), latency.get(), velocity.get(), six_val.get())
+                    area_06.get(), area_630.get(), latency.get(), velocity.get(), six_val.get(), mel.get())
     messagebox.showinfo(message='Graphs are done!')
 
 def selectfile():
@@ -73,18 +78,26 @@ constr_time_entry.grid(row=2, column=1)
 # show original graph toggle
 show_original = IntVar()
 show_original_label = Checkbutton(app, text='Show Original Graph', variable=show_original, onvalue=1, offvalue=0)
-show_original_label.grid(row = 3, column=0)
+show_original_label.grid(row = 3, column=1)
 
 
 
 compute_btn = Button(app,text='Select Folder', width=12, command=selectfile)
-compute_btn.grid(row=4, column=1)
+compute_btn.grid(row=5, column=1)
+
+split = IntVar()
+split_label = Checkbutton(text='Excel Files are split', variable=split, onvalue=1, offvalue=0)
+split_label.grid(row=4, column=1)
+
+mel = IntVar()
+mel_label = Checkbutton(text='Melatonine test', variable=split, onvalue=1, offvalue=0)
+mel_label.grid(row=7, column=1)
 
 path_label = Label(app, text='Select the XXX folder before exports', font=('bold', 12), pady=20)
-path_label.grid(row=4, column=0)
+path_label.grid(row=5, column=0)
 
 compute_btn = Button(app,text='Compute Graphs', width=12, command=compute_graphs)
-compute_btn.grid(row=5, column=1)
+compute_btn.grid(row=6, column=1)
 
 
 
@@ -113,6 +126,7 @@ six_val_label = Checkbutton(text='Value 6s after trigger', variable=six_val, onv
 six_val_label.grid(row=5, column=2)
 
 
+
 import os
 import pandas as pd
 import numpy as np
@@ -130,6 +144,7 @@ def getpath():
 def getPatientSheetsConcat(path):
     all_sheets = []
     # fetch from files
+
     try:
         excelFile = pd.ExcelFile(path+"/exports/000/eye0 all.xlsx")
     except FileNotFoundError:
@@ -191,30 +206,40 @@ def min_and_value(array):
 
 # SHEET SPLITTER ========================================
 
-def splitprepost(sheets):
+def splitprepost(sheets, split):
     pre_triggers = []
     post_triggers = []
     triggers = []
-    for i in range(len(sheets)):
-        sheet = sheets[i] 
-        
-        if i %2 == 0:
-            post = sheets[i+1][:,1]
-            # fetches pre-trigger DataFrame
-            current_array = fill_nan(sheet[:,1])
-            #mean = np.repeat(np.mean(current_array), current_array.shape[0])
-            #pre_triggers.append(current_array)
-            
+    if split == 0:
+        for i in range(len(sheets)):
+            sheet = sheets[i]
             trigger_idx = np.where(sheets[0][:,2] == 'S')[0][0]
-            #print(trigger_idx)
-            
-            current_array = fill_nan(sheet[:,1])
-            
-            #mean = np.repeat(np.mean(current_array), current_array.shape[0])
-            pre_triggers.append(current_array[:trigger_idx])
-            post = np.append(current_array[trigger_idx:], post)
-            post_triggers.append(post)
+            pre_triggers.append(fill_nan(sheet[:,1][:trigger_idx]))
+            post_triggers.append(fill_nan(sheet[:,1][trigger_idx:]))
             triggers.append(trigger_idx)
+        print(type(pre_triggers[0][0]))
+        print(type(post_triggers[0]))
+        print(type(triggers[0]))
+    else:
+        for i in range(len(sheets)):
+            print(i)
+            sheet = sheets[i] 
+            
+            if i %2 == 0:
+                post = sheets[i+1][:,1]
+                # fetches pre-trigger DataFrame
+                current_array = fill_nan(sheet[:,1])
+                
+                trigger_idx = np.where(sheets[0][:,2] == 'S')[0][0]
+                #print(trigger_idx)
+                
+                current_array = fill_nan(sheet[:,1])
+                
+                #mean = np.repeat(np.mean(current_array), current_array.shape[0])
+                pre_triggers.append(current_array[:trigger_idx])
+                post = np.append(current_array[trigger_idx:], post)
+                post_triggers.append(post)
+                triggers.append(trigger_idx)
         
     return np.copy(pre_triggers), np.copy(post_triggers), np.copy(triggers)
 
@@ -256,8 +281,9 @@ def plot_graph():
     a = np.ones(100)
     plt.plot(a, '--', label='baseline', color='gray')
 
+
 def make_graphs(save_path, patient_name, pre, post, trigger, hcut, constr_time, show_original,
-                area_06, area_630, latency, velocity, six_val):
+                area_06, area_630, latency, velocity, six_val, mel):
 
     # setting default arguments
     if hcut == 0:
@@ -266,8 +292,11 @@ def make_graphs(save_path, patient_name, pre, post, trigger, hcut, constr_time, 
         constr_time = 400
 
     #make sure it's legit
+    
+    
     assert(len(pre) == len(trigger))
     assert(len(post) ==len(pre))
+    
 
 
     all_data =""
@@ -277,6 +306,8 @@ def make_graphs(save_path, patient_name, pre, post, trigger, hcut, constr_time, 
         pre_ = np.copy(pre[i])
         current_min = post_[0]
 
+
+        
         #process post_ with simple derivative filter 
         for j in range(1, constr_time):
             if post_[j] <= current_min and post_[j] != np.nan:
@@ -284,7 +315,7 @@ def make_graphs(save_path, patient_name, pre, post, trigger, hcut, constr_time, 
                 
             if post_[j] > current_min:
                 post_[j] = np.nan
-            p = fill_nan(post_) # linear interpolation
+                p = fill_nan(post_) # linear interpolation
                 
         ft = fourier_filter(p, fcut = 150)
         plt.figure(figsize=(10,5))
