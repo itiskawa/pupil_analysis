@@ -9,22 +9,29 @@ from numpy.lib.shape_base import _put_along_axis_dispatcher
 app = Tk()
 path = StringVar()
 
-def patient_sheets(path, split):
+def patient_sheets(path, split, eye):
     # return pre, post, triggers of the given patient
     
-    pre, post, trigger = splitprepost(getPatientSheetsConcat(path), split)
+    pre, post, trigger = splitprepost(getPatientSheetsConcat(path, eye), split)
     #print('fetched excel files')
     return pre, post, trigger
 
 # computes all graphs for given patient
 def compute_graphs():
    
-    pre, post, trigger = patient_sheets(path.get(),split.get())
+    pre, post, trigger = patient_sheets(path.get(),split.get(), 0)
     
     
     make_graphs(path.get(), "", pre, post, trigger, hcut.get(), constr_time.get()*120, show_original.get(),
-                    area_06.get(), area_630.get(), latency.get(), velocity.get(), six_val.get(), mel.get())
-    messagebox.showinfo(message='Graphs are done!')
+                    area_06.get(), area_630.get(), latency.get(), velocity.get(), six_val.get(), eye=0)
+    messagebox.showinfo(message='Eye 0 graphs are done!')
+
+    pre, post, trigger = patient_sheets(path.get(),split.get(), 1)
+    
+    
+    make_graphs(path.get(), "", pre, post, trigger, hcut.get(), constr_time.get()*120, show_original.get(),
+                    area_06.get(), area_630.get(), latency.get(), velocity.get(), six_val.get(), eye=1)
+    messagebox.showinfo(message='Eye 1 graphs are done!')
 
 def selectfile():
     filename = askdirectory()
@@ -86,12 +93,12 @@ compute_btn = Button(app,text='Select Folder', width=12, command=selectfile)
 compute_btn.grid(row=5, column=1)
 
 split = IntVar()
-split_label = Checkbutton(text='Excel Files are split', variable=split, onvalue=1, offvalue=0)
+split_label = Checkbutton(text='Melanopsin Test', variable=split, onvalue=1, offvalue=0)
 split_label.grid(row=4, column=1)
 
-mel = IntVar()
-mel_label = Checkbutton(text='Melatonine test', variable=split, onvalue=1, offvalue=0)
-mel_label.grid(row=7, column=1)
+""" mel = IntVar()
+mel_label = Checkbutton(text='Melatonine test', variable=mel, onvalue=1, offvalue=0)
+mel_label.grid(row=7, column=1) """
 
 path_label = Label(app, text='Select the XXX folder before exports', font=('bold', 12), pady=20)
 path_label.grid(row=5, column=0)
@@ -141,12 +148,16 @@ def getpath():
 
 
 # SHEET GETTER ========================================
-def getPatientSheetsConcat(path):
+def getPatientSheetsConcat(path, eye):
     all_sheets = []
     # fetch from files
-
+    ext = ''
+    if eye == 0:
+        ext = "/exports/000/eye0 all.xlsx"
+    else:
+        ext = "/exports/000/eye1 all.xlsx"
     try:
-        excelFile = pd.ExcelFile(path+"/exports/000/eye0 all.xlsx")
+        excelFile = pd.ExcelFile(path+ext)
     except FileNotFoundError:
         
         messagebox.showerror(message="No such path")
@@ -203,6 +214,10 @@ def highcut(array, hcut):
 def min_and_value(array):
     m = np.argmin(array)
     return m, array[m]
+
+#-----------------------
+def normalize_array(array, baseline):
+    return array/baseline
 
 # SHEET SPLITTER ========================================
 
@@ -282,14 +297,10 @@ def plot_graph():
     plt.plot(a, '--', label='baseline', color='gray')
 
 
-def make_graphs(save_path, patient_name, pre, post, trigger, hcut, constr_time, show_original,
-                area_06, area_630, latency, velocity, six_val, mel):
+def make_graphs(save_path, patient_name, pre, post, trigger, hcut, constr_time_given, show_original,
+                area_06, area_630, latency, velocity, six_val, eye):
 
-    # setting default arguments
-    if hcut == 0:
-        hcut = 40
-    if constr_time == 0:
-        constr_time = 400
+    
 
     #make sure it's legit
     
@@ -302,10 +313,21 @@ def make_graphs(save_path, patient_name, pre, post, trigger, hcut, constr_time, 
     all_data =""
 
     for i in range(len(post)):
+
         post_ = highcut(np.copy(post[i]), hcut)
         pre_ = np.copy(pre[i])
         current_min = post_[0]
 
+        # setting default arguments
+        if hcut == 0:
+            hcut = 40
+        
+        print(len(post_))
+        if len(post_) < constr_time_given:
+            constr_time = len(post_)-1
+        else:
+            constr_time = 400
+        print(constr_time)
 
         
         #process post_ with simple derivative filter 
@@ -323,37 +345,38 @@ def make_graphs(save_path, patient_name, pre, post, trigger, hcut, constr_time, 
         baseline = np.ones(
             pre[i].shape[0]+post[i].shape[0])*compute_baseline(fill_nan(pre[i]), trigger[i])    
 
+        baseline_value = baseline[0]
 
         # PLOTTING 
 
-        plt.plot(baseline, '--', label='baseline', color='gray')
+        plt.plot(normalize_array(baseline, baseline_value), '--', label='baseline', color='gray')
         
         if(show_original == 1):
-            plt.plot(connect(pre_, np.copy(post[i])), label='original', color='green') #original graph
-            plt.plot(connect(pre_, np.copy(p)), label='filtered', color='blue') #original graph
+            plt.plot(normalize_array(connect(pre_, np.copy(post[i])), baseline_value), label='original', color='green') #original graph
+            #plt.plot(connect(pre_, np.copy(p)), label='filtered', color='blue') #original graph
 
-        #plt.plot(connect(pre_, post_), label='filtered', color='g')
-        plt.plot(connect(pre_, ft), label='processed', color='r') # processed graph
+        processed = normalize_array(connect(pre_, ft), baseline_value)
+        plt.plot(processed, label='processed', color='r') # processed graph
         
         
         
-        plt.plot(trigger[i], baseline[trigger[i]], 'x',mew=2, ms=5, label='trigger', color='black')
+        plt.plot(trigger[i], 1, 'x',mew=2, ms=5, label='trigger', color='black')
         
         
-        mindex, min_value = min_and_value(ft[:constr_time])
+        mindex, min_value = min_and_value(processed[:constr_time])
         plt.plot(mindex, min_value, '+', label= 'min value', color='black', mew=5,ms=10)
-        plt.title(label=patient_name)
+        
         
         plt.legend()
 
         #saving image & making Data File
-        frames_to_min = (mindex-trigger[i])
         time_to_min = (1/120)*(mindex-trigger[i])        
+        eyestr = 'eye_'+str(eye)
         
-        save_path_graphs = save_path+'/results/processed_'+str(i)
+        save_path_graphs = save_path+'/results_'+eyestr+'/processed_'+str(i)
 
-        if not os.path.exists(save_path+'/results'):
-            os.mkdir(save_path+'/results')
+        if not os.path.exists(save_path+'/results_'+eyestr):
+            os.mkdir(save_path+'/results_'+eyestr)
         plt.savefig(fname=save_path_graphs)
 
         abs_min = np.min(ft[:400])
@@ -362,14 +385,11 @@ def make_graphs(save_path, patient_name, pre, post, trigger, hcut, constr_time, 
 
         # DATA PRINTING
         all_data +="TRIGGER NUMBER [{}] : \n".format(i+1) 
-        all_data += "   - Time to min from trigger: ~{:.2f} sec \n".format(time_to_min)
-
-
+        
         all_data += '   - Maximal Constriction Amplitude [%] : {:.4f} \n'.format(max_constr_ampl)
         if latency == 1:
-                all_data += '   - Latency : '
-                all_data += '{:.4f} \n'.format(abs_min)
-                #write_data(save_path, 'Latency', str(abs_min))
+            all_data += "   - Latency: ~{:.2f} sec \n".format(time_to_min)
+            #write_data(save_path, 'Latency', str(abs_min))
         if velocity == 1:
             all_data += '   - Velocity : '
             all_data += '{:.4f} \n'.format(max_constr_ampl/abs_min)
@@ -378,7 +398,7 @@ def make_graphs(save_path, patient_name, pre, post, trigger, hcut, constr_time, 
             all_data += '   - Value at 6 seconds : '
             all_data += '{:.4f} \n'.format(ft[6*120])
 
-        print(ft.shape)
+        #print(ft.shape)
         x_axis = np.ones(ft.shape[0])*baseline[0]
 
         if area_06 == 1:
@@ -397,6 +417,8 @@ def make_graphs(save_path, patient_name, pre, post, trigger, hcut, constr_time, 
 
     #write data 
     write_data(save_path, all_data)
+
+
 def compute_area(y):
     return integr.trapz(y)
 
