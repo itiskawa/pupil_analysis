@@ -19,18 +19,24 @@ def patient_sheets(path, split, eye):
 # computes all graphs for given patient
 def compute_graphs():
    
+    if (((area_06.get() == 1) or (area_630.get() == 1) or (six_val.get()==1)) and split.get() == 0):
+        print("uh \n")
+        messagebox.showinfo(message='Incompatible computation : code 1')
+        return
+
     pre, post, trigger = patient_sheets(path.get(),split.get(), 0)
     
-    
     make_graphs(path.get(), "", pre, post, trigger, hcut.get(), constr_time.get()*120, show_original.get(),
-                    area_06.get(), area_630.get(), latency.get(), velocity.get(), six_val.get(), eye=0)
+                    area_06.get(), area_630.get(), latency.get(), velocity.get(), max_constr.get(), 
+                    max_vel.get(), six_val.get(), derivative.get(),  eye=0)
     messagebox.showinfo(message='Eye 0 graphs are done!')
 
     pre, post, trigger = patient_sheets(path.get(),split.get(), 1)
     
     
     make_graphs(path.get(), "", pre, post, trigger, hcut.get(), constr_time.get()*120, show_original.get(),
-                    area_06.get(), area_630.get(), latency.get(), velocity.get(), six_val.get(), eye=1)
+                    area_06.get(), area_630.get(), latency.get(), velocity.get(), max_constr.get(),
+                    max_vel.get(), six_val.get(),derivative.get(), eye=1)
     messagebox.showinfo(message='Eye 1 graphs are done!')
 
 def selectfile():
@@ -46,91 +52,100 @@ app.geometry('800x400')
 
 # LEFT SIDE - GRAPH MAKER - COLUMNS 0 & 1
 
-#fetch path name
-""" path_name = StringVar()
-path_name_label = Label(app, text='Path to file:', font=('bold',14), pady = 20)
-path_name_label.grid(row = 0, column=0) """
 
-#path entry
-""" path_entry = Entry(app, textvariable=path_name)
-path_entry.grid(row=0, column=1) """
+# OPTIONAL SETTINGS FRAME [0,0]
 
-#folder name
-""" folder_name = StringVar()
-folder_name_label = Label(app, text='Path to folder:', font=('bold',14), pady = 20)
-folder_name_label.grid(row = 1, column=0) """
-
-#folder name entry
-""" folder_entry = Entry(app, textvariable=folder_name)
-folder_entry.grid(row=1, column=1) """
-
-
-opt_text = Label(app, text='[Optional Settings]', padx=20)
-opt_text.grid(row=0, column=0)
+opt_frame = LabelFrame(app, text='Optional Settings', padx=20, pady=20)
+opt_frame.grid(row=0, column=0, padx=20, pady=20)
 
 #highcut selector
 hcut = IntVar()
-highcut_label = Label(app, text='Highcut: ', font=('bold',14), pady=20)
-highcut_label.grid(row = 1, column=0)
-highcut_entry = Entry(app, textvariable=hcut)
-highcut_entry.grid(row=1, column=1)
+highcut_label = Label(opt_frame, text='Highcut: ', font=('bold',14), pady=20)
+highcut_label.grid(row = 0, column=0)
+highcut_entry = Entry(opt_frame, textvariable=hcut)
+highcut_entry.grid(row=0, column=1)
 
 # contraction time selector
 constr_time = IntVar()
-constr_time_label = Label(app, text=' Max. time to min[s]', font=('bold',14), pady=20)
-constr_time_label.grid(row = 2, column=0)
-constr_time_entry = Entry(app, textvariable=constr_time)
-constr_time_entry.grid(row=2, column=1)
+constr_time_label = Label(opt_frame, text=' Max. time to min[s]', font=('bold',14), pady=20)
+constr_time_label.grid(row = 1, column=0)
+constr_time_entry = Entry(opt_frame, textvariable=constr_time)
+constr_time_entry.grid(row=1, column=1)
 
 # show original graph toggle
 show_original = IntVar()
-show_original_label = Checkbutton(app, text='Show Original Graph', variable=show_original, onvalue=1, offvalue=0)
-show_original_label.grid(row = 3, column=1)
+show_original_label = Checkbutton(opt_frame, text='Show Original Graph', variable=show_original, onvalue=1, offvalue=0)
+show_original_label.grid(row = 2, column=0)
+
+derivative = IntVar()
+derivative_label = Checkbutton(opt_frame, text='Compute Derivative Graph', variable=derivative, onvalue=1, offvalue=0)
+derivative_label.grid(row = 2, column=1)
+
+#________________________________________________
 
 
+# UNDER OPTIONAL SETTINGS
 
-compute_btn = Button(app,text='Select Folder', width=12, command=selectfile)
-compute_btn.grid(row=5, column=1)
+final_frame = LabelFrame(app, text='Ready', padx=20, pady=20)
+final_frame.grid(row=1, column=0)
+
+select_btn = Button(final_frame,text='Select Folder', width=12, command=selectfile)
+select_btn.grid(row=0, column=0)
 
 split = IntVar()
-split_label = Checkbutton(text='Melanopsin Test', variable=split, onvalue=1, offvalue=0)
-split_label.grid(row=4, column=1)
+split_label = Checkbutton(final_frame, text='Melanopsin Test', variable=split, onvalue=1, offvalue=0)
+split_label.grid(row=1, column=0)
+
+
+#normal_label = Checkbutton(final_frame,text='Cone/Rod Test', variable=split, onvalue=0, offvalue=1)
+#ormal_label.grid(row=1, column=1)
+
+compute_btn = Button(final_frame,text='Compute Graphs', width=12, command=compute_graphs)
+compute_btn.grid(row=2, column=0)
 
 """ mel = IntVar()
 mel_label = Checkbutton(text='Melatonine test', variable=mel, onvalue=1, offvalue=0)
 mel_label.grid(row=7, column=1) """
 
-path_label = Label(app, text='Select the XXX folder before exports', font=('bold', 12), pady=20)
-path_label.grid(row=5, column=0)
-
-compute_btn = Button(app,text='Compute Graphs', width=12, command=compute_graphs)
-compute_btn.grid(row=6, column=1)
 
 
+
+#________________________________________________
 
 # RIGHT SIDE - STATISTICS
-stats = Label(app, text='Statistics', font=('bold', 14), padx=150)
-stats.grid(row = 0, column=2)
-
-area_06 = IntVar()
-area_06_label = Checkbutton(text='Area under curve [0s-6s]', variable=area_06, onvalue=1, offvalue=0)
-area_06_label.grid(row=1, column=2)
-
-area_630 = IntVar()
-area_630_label = Checkbutton(text='Area under curve [6s-30s]', variable=area_630, onvalue=1, offvalue=0)
-area_630_label.grid(row=2, column=2)
+stats_frame = LabelFrame(app, text='Statistics', font=('bold', 14), padx=20, pady=45)
+stats_frame.grid(row = 0, column=1)
 
 latency = IntVar()
-latency_label = Checkbutton(text='Latency', variable=latency, onvalue=1, offvalue=0)
-latency_label.grid(row=3, column=2)
+latency_label = Checkbutton(stats_frame, text='Latency', variable=latency, onvalue=1, offvalue=0)
+latency_label.grid(row=0, column=0)
 
 velocity = IntVar()
-velocity_label = Checkbutton(text='Velocity', variable=velocity, onvalue=1, offvalue=0)
-velocity_label.grid(row=4, column=2)
+velocity_label = Checkbutton(stats_frame, text='Velocity', variable=velocity, onvalue=1, offvalue=0)
+velocity_label.grid(row=1, column=0)
+
+max_constr = IntVar()
+max_constr_label = Checkbutton(stats_frame, text='Maximal Constriction Amplitude', variable=max_constr, onvalue=1, offvalue=0)
+max_constr_label.grid(row=2, column=0)
+
+max_vel = IntVar()
+max_vel_label = Checkbutton(stats_frame, text='Maximal Velocity Amplitude', variable=max_vel, onvalue=1, offvalue=0)
+max_vel_label.grid(row=3, column=0)
+
+mel_frame = LabelFrame(app, text='Melanopsin Stats', padx=20, pady=20)
+mel_frame.grid(row=1, column=1)
+
+area_06 = IntVar()
+area_06_label = Checkbutton(mel_frame, text='Area under curve [0s-6s]', variable=area_06, onvalue=1, offvalue=0)
+area_06_label.grid(row=0, column=0)
+
+area_630 = IntVar()
+area_630_label = Checkbutton(mel_frame, text='Area under curve [6s-30s]', variable=area_630, onvalue=1, offvalue=0)
+area_630_label.grid(row=1, column=0)
 
 six_val = IntVar()
-six_val_label = Checkbutton(text='Value 6s after trigger', variable=six_val, onvalue=1, offvalue=0)
-six_val_label.grid(row=5, column=2)
+six_val_label = Checkbutton(mel_frame, text='Value 6s after trigger', variable=six_val, onvalue=1, offvalue=0)
+six_val_label.grid(row=2, column=0)
 
 
 
@@ -232,12 +247,13 @@ def splitprepost(sheets, split):
             pre_triggers.append(fill_nan(sheet[:,1][:trigger_idx]))
             post_triggers.append(fill_nan(sheet[:,1][trigger_idx:]))
             triggers.append(trigger_idx)
-        print(type(pre_triggers[0][0]))
+        """ print(type(pre_triggers[0][0]))
         print(type(post_triggers[0]))
-        print(type(triggers[0]))
+        print(type(triggers[0])) """
     else:
         for i in range(len(sheets)):
-            print(i)
+            #
+            # print(i)
             sheet = sheets[i] 
             
             if i %2 == 0:
@@ -298,7 +314,7 @@ def plot_graph():
 
 
 def make_graphs(save_path, patient_name, pre, post, trigger, hcut, constr_time_given, show_original,
-                area_06, area_630, latency, velocity, six_val, eye):
+                area_06, area_630, latency, velocity, max_constr, max_vel, six_val, derivative, eye):
 
     
 
@@ -307,6 +323,15 @@ def make_graphs(save_path, patient_name, pre, post, trigger, hcut, constr_time_g
     
     assert(len(pre) == len(trigger))
     assert(len(post) ==len(pre))
+
+    data = {'Latency': [0], 'Velocity': [0], 'Max. Constriction': [0], 'Max. Velocity': [0]}
+    if area_06 == 1:
+        data.update({'Area 0-6': [0]})
+    if area_630 == 1:
+        data.update({'Area 6-30': [0]})
+    if six_val == 1:
+        data.update({'Value at 6s': [0]})
+    #print(data)
     
 
 
@@ -322,16 +347,16 @@ def make_graphs(save_path, patient_name, pre, post, trigger, hcut, constr_time_g
         if hcut == 0:
             hcut = 40
         
-        print(len(post_))
+        #print(len(post_))
         if len(post_) < constr_time_given:
             constr_time = len(post_)-1
         else:
             constr_time = 400
-        print(constr_time)
+        #print(constr_time)
 
         
         #process post_ with simple derivative filter 
-        for j in range(1, constr_time):
+        for j in range(1, min(constr_time, len(post_))):
             if post_[j] <= current_min and post_[j] != np.nan:
                 current_min = post_[j]
                 
@@ -340,6 +365,7 @@ def make_graphs(save_path, patient_name, pre, post, trigger, hcut, constr_time_g
                 p = fill_nan(post_) # linear interpolation
                 
         ft = fourier_filter(p, fcut = 150)
+
         plt.figure(figsize=(10,5))
         
         baseline = np.ones(
@@ -368,65 +394,121 @@ def make_graphs(save_path, patient_name, pre, post, trigger, hcut, constr_time_g
         
         
         plt.legend()
+        eyestr = 'eye_'+str(eye)
 
         #saving image & making Data File
-        time_to_min = (1/120)*(mindex-trigger[i])        
-        eyestr = 'eye_'+str(eye)
-        
-        save_path_graphs = save_path+'/results_'+eyestr+'/processed_'+str(i)
+        save_path_graphs = save_path+'/results_'+eyestr+'/proc'+str(i)
 
         if not os.path.exists(save_path+'/results_'+eyestr):
             os.mkdir(save_path+'/results_'+eyestr)
         plt.savefig(fname=save_path_graphs)
 
+        plt.close()
+
+        # DERIVATIVE
+        
+        if derivative == 1:
+            make_diff_graph(processed, save_path, eyestr, i)
+
+
+
+        #DATA OF GRAPHS
+        time_to_min = (1/120)*(mindex-trigger[i])        
         abs_min = np.min(ft[:400])
-        max_constr_ampl = baseline[0] - abs_min
-
-
+        max_constr_ampl = baseline[0] - abs_min 
+        max_velocity_ampl = max_constr_ampl/time_to_min
+        
+        
         # DATA PRINTING
         all_data +="TRIGGER NUMBER [{}] : \n".format(i+1) 
         
-        all_data += '   - Maximal Constriction Amplitude [%] : {:.4f} \n'.format(max_constr_ampl)
         if latency == 1:
-            all_data += "   - Latency: ~{:.2f} sec \n".format(time_to_min)
-            #write_data(save_path, 'Latency', str(abs_min))
+            all_data += "   - Latency to Peak: ~{:.2f} sec \n".format(time_to_min)
+            data['Latency'].append(time_to_min)
+            #print(data)
+
         if velocity == 1:
             all_data += '   - Velocity : '
             all_data += '{:.4f} \n'.format(max_constr_ampl/abs_min)
+            data['Velocity'].append(max_constr_ampl/abs_min)
+
+        if max_constr ==1:
+            all_data += '   - Maximal Constriction Amplitude [%] : {:.4f} \n'.format(max_constr_ampl)
+            data['Max. Constriction'].append(max_constr_ampl)
+
+        if max_vel == 1:
+            all_data += '   - Maximal Velocity Amplitude [%/s] : {:.4f} \n'.format(max_velocity_ampl)
+            data['Max. Velocity'].append(max_velocity_ampl)
 
         if six_val == 1:
             all_data += '   - Value at 6 seconds : '
             all_data += '{:.4f} \n'.format(ft[6*120])
-
-        #print(ft.shape)
-        x_axis = np.ones(ft.shape[0])*baseline[0]
+            data['Value at 6s'].append(ft[6*120])
 
         if area_06 == 1:
             all_data += '   - Area under graph [0,6]s : '
             area = compute_area(ft[:6*120])
             rect = compute_area(baseline[:6*120])
             all_data += '{:.4f} \n'.format(rect - area)
+            data['Area 0-6'].append(rect-area)
 
         if area_630 == 1:
             all_data += '   - Area under graph [6,30]s : '
             area = compute_area(ft[6*120:30*120])
             rect = compute_area(baseline[6*120:30*120])
             all_data += '{:.4f} \n'.format(rect - area)
+            data['Area 6-30'].append(rect-area)
+            
 
+        #print(data['Latency'])
         all_data += '\n'
+
+        df = pd.DataFrame.from_dict(data)
+        make_excel(save_path,eyestr, df)
 
     #write data 
     write_data(save_path, all_data)
 
+def make_diff_graph(graph, path, eyestr, i):
+
+    save_path_diff = path+'/derivatives_'+eyestr+'/proc_diff'+str(i)
+    plt.figure(figsize=(10,5))
+
+
+    x = np.linspace(0, graph.shape[0], graph.shape[0])
+    dx = x[1]-x[0]
+    y = np.copy(graph)
+    dydx = np.gradient(y, dx)
+    filtered_diff = fourier_filter(dydx, fcut=200)
+    zero_line = np.zeros(filtered_diff.shape[0])
+    #plt.plot(dydx, color='blue')
+    plt.plot(zero_line, '-',color='black')
+    plt.plot(filtered_diff, color='r')
+
+
+    if not os.path.exists(path+'/derivatives_'+eyestr):
+        os.mkdir(path+'/derivatives_'+eyestr)
+    plt.savefig(fname=save_path_diff)
+    plt.close()
+    
+def make_excel(path,eye, data):
+    sheet = 'sheet'
+    writer = pd.ExcelWriter(path+'/data '+eye+'.xlsx')
+    data.to_excel(writer, sheet_name = sheet)
+    writer.save()
+    writer.close()
+    #print('excel Made')
+
+    
 
 def compute_area(y):
     return integr.trapz(y)
 
+def write_data(path,data_txt):
 
-def write_data(path,data):
     with open(path+"/data.txt", "w") as f:
             f.write('\n')
-            f.write(data)
+            f.write(data_txt)
             f.close()
     
 
